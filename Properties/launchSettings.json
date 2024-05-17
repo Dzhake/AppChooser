@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AppChooser": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}

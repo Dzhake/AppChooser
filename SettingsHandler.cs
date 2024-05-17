@@ -1,77 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Numerics;
-using Vulkan.Xlib;
-using System.Text.Json;
 using System.Linq;
 using System.Reflection;
+using System.Numerics;
 
 namespace AppChooser
 {
-    public static class Settings
+
+    /// <summary>
+    /// Settings handler class that saves and loads data automatically.
+    /// </summary>
+    public static class MSettingHandler
     {
-        public static string SettingsRoot = Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%/AppChooser/");
-        public static string SettingsPath => SettingsRoot + "Settings.txt";
-        public static string ExecutablesPath => SettingsRoot + "Executables.json";
-        public static string ExecutablesBackupPath => SettingsRoot + "Executables_broken.json";
-
-        [Save]
-        public static Vector2 WindowPosition = new Vector2(50, 50);
-        [Save]
-        public static Vector2 WindowSize = new Vector2(1920, 1080);
-        [Save]
-        public static bool KeepPosition = true;
-        [Save]
-        public static bool KeepSize = true;
-        
-        [Save]
-        public static float FontSize = 1f;
-        [Save]
-        public static bool DontLaunchIfOnlyOneAppAvaible = true;
-
-        public static List<AppConfig> Apps = new();
-
-        public static void LoadSettings(bool recursed = false)
-        {
-            Directory.CreateDirectory(SettingsRoot);
-            if (!File.Exists(SettingsPath)) File.Create(SettingsPath);
-            if (!File.Exists(ExecutablesPath)) File.Create(ExecutablesPath);
-
-            LoadAllData();
-
-
-            string jsonText = File.ReadAllText(ExecutablesPath);
-            if (!string.IsNullOrEmpty(jsonText)) // Probably I should do some better check.
-            {
-                var options = new JsonSerializerOptions();
-                options.IncludeFields = true;
-                try
-                {
-                    Apps = JsonSerializer.Deserialize<List<AppConfig>>(jsonText, options) ?? Apps;
-                }
-                catch (Exception e)
-                {
-                    File.Move(ExecutablesPath, ExecutablesPath);
-                    Console.WriteLine("Could not load Executables.json, error was catched. Executables.json was renamed to Executables_broken.json .");
-                    Console.WriteLine(e);
-                }
-            }
-        }
-
-        public static void SaveSettings()
-        {
-            WindowSize.X = Program.Window.Width; WindowSize.Y = Program.Window.Height;
-            WindowPosition.X = Program.Window.X; WindowPosition.Y = Program.Window.Y;
-
-            SaveAllData();
-
-            var options = new JsonSerializerOptions();
-            options.IncludeFields = true;
-            File.WriteAllText(ExecutablesPath, JsonSerializer.Serialize(Apps, options));
-        }
-
-        #region FileSystem
 
         private static void LoadAllData()
         {
@@ -205,7 +146,5 @@ namespace AppChooser
             return Assembly.GetExecutingAssembly().GetTypes().SelectMany(x => x.GetFields()).Where(x =>
                 x.GetCustomAttributes(typeof(SaveAttribute), false).FirstOrDefault() != null);
         }
-
-        #endregion
     }
 }
