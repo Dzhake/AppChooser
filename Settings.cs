@@ -52,7 +52,7 @@ namespace AppChooser
                 }
                 catch (Exception e)
                 {
-                    File.Move(ExecutablesPath, ExecutablesPath);
+                    File.Move(ExecutablesPath, ExecutablesBackupPath);
                     Console.WriteLine("Could not load Executables.json, error was catched. Executables.json was renamed to Executables_broken.json .");
                     Console.WriteLine(e);
                 }

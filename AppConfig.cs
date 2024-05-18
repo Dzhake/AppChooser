@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json.Serialization;
+using System.Drawing;
 
 namespace AppChooser
 {
@@ -31,8 +33,12 @@ namespace AppChooser
 
         public void Launch(string filename)
         {
-            string parameters = Parameters.Replace("{filename}",filename);
-            Process.Start(ExePath, parameters);
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = ExePath,
+                Arguments = "\"" + Parameters.Replace("{filename}", filename) + "\""
+            };
+            Process.Start(startInfo);
         }
 
         public static string GetDisplayName(string exePath)

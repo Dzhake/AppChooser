@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
 using Microsoft.Win32;
+using System.Security.Principal;
 
 
 namespace AppChooser
@@ -72,6 +73,7 @@ namespace AppChooser
                     if (AvaibleApps.Count == 1)
                     {
                         AvaibleApps[0].Launch(file);
+                        Settings.SaveSettings();
                         Environment.Exit(0);
                     }
                 }
@@ -176,6 +178,7 @@ namespace AppChooser
                         if (ImGui.MenuItem("Main"))
                         {
                             UpdateAvaibleApps();
+                            Settings.SaveSettings();
                             CurrentMenu = Menu.Main;
                         }
 
@@ -220,11 +223,13 @@ namespace AppChooser
                     ImGui.Text($"Opening {file}");
                     foreach (AppConfig config in AvaibleApps)
                     {
+                        //ImGui.Image((IntPtr)config.icon.TextureId, new Vector2(SampleImageDemoData.TextureWidth, SampleImageDemoData.TextureHeight));
                         ImGui.PushID(config.DisplayName);
 
                         if (ImGui.Button($"{config.DisplayName}\n{config.ExePath} {config.Parameters}", new Vector2(Window.Width, io.FontGlobalScale * 30)))
                         {
                             config.Launch(file);
+                            Settings.SaveSettings();
                             Environment.Exit(0);
                         }
 
@@ -244,6 +249,7 @@ namespace AppChooser
                             if (ImGui.Button($"{config.DisplayName}\n{config.ExePath} {config.Parameters}", new Vector2(Window.Width, io.FontGlobalScale * 30)))
                             {
                                 config.Launch(file);
+                                Settings.SaveSettings();
                                 Environment.Exit(0);
                             }
 
@@ -271,12 +277,33 @@ namespace AppChooser
                         }
                         ImGui.Checkbox("Don't open window if only one app specified for that extension/file", ref Settings.DontLaunchIfOnlyOneAppAvaible);
 
+                        bool admin = IsAdministrator;
+                        if (!admin)
+                        {
+                            ImGui.TextColored(new Vector4(1f, 19f / 255f, 19f / 255f, 1f), "You need to run app as admin to use those buttons.");
+                            ImGui.BeginDisabled();
+                        }
+
                         if (ImGui.Button("Add this app to right-click menu"))
                         {
-                            RegistryKey k1 = Registry.ClassesRoot.OpenSubKey("Directory").OpenSubKey("Background").OpenSubKey("shell", true);
+                            RegistryKey k1 = Registry.ClassesRoot.OpenSubKey("*").OpenSubKey("shell", true);
                             RegistryKey k2 = k1.CreateSubKey("AppChooser", true);
                             RegistryKey k3 = k2.CreateSubKey("Command", true);
-                            k3.SetValue("", Application.ExecutablePath);
+                            k3.SetValue("", $"\"{Application.ExecutablePath}\" \"%1\"");
+                            k2.SetValue("","Open with App Chooser");
+                            k2.SetValue("Icon", Application.ExecutablePath);
+                            k1.Flush();
+                        }
+                        if (ImGui.Button("Remove this app from right-click menu"))
+                        {
+                            RegistryKey k1 = Registry.ClassesRoot.OpenSubKey("*").OpenSubKey("shell", true);
+                            if (k1.OpenSubKey("AppChooser") != null) {
+                                k1.DeleteSubKeyTree("AppChooser");
+                            }
+                        }
+                        if (!admin)
+                        {
+                            ImGui.EndDisabled();
                         }
                         ImGui.EndTabItem();
                     }
@@ -380,6 +407,10 @@ namespace AppChooser
                         ImGui.Text("This app keeps settings in \"%localappdata%/AppChooser/\".");
                         ImGui.Text("You can copypaste files from there if you need to send them to other pc.");
                         ImGui.Text("And you can delete them when uninstalling app (tho they're really small)");
+                        ImGui.Text("This app also modifies HKEY_CLASSES_ROOT/*/shell/ registry key, by adding AppChooser/ key there,\nwhen you click on \"Add to right-click menu\", and removes that key" +
+                            "when you click on \"Remove from right-click menu\".");
+                        ImGui.NewLine();
+                        ImGui.Text("This app uses Dear ImGui.NET to do stuff. I really like it, and I thank it's creators");
                         ImGui.NewLine();
                         ImGui.Text("App by Dzhake, MIT license, site: https://github.com/Dzhake/AppChooser");
                         ImGui.EndTabItem();
@@ -437,5 +468,7 @@ namespace AppChooser
         {
             AvaibleApps = GetAppsForExtension(Path.GetExtension(file), out OtherApps);
         }
+
+        public static bool IsAdministrator => new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
     }
 }
